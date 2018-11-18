@@ -29,18 +29,20 @@ class GameClientProtocol(JsonReceiver):
     def __init__(self):
         self.game = Game()
         self.side = None
-
-    # Function to print messages of variable parameters
-    def out(self, *messages):
-        for message in messages:
-            print message
-
+        
     # Print help and board after connection is made
     def connectionMade(self):
         stdio.StandardIO(UserInputProtocol(self.userInputReceived))
         self.out("Connected!")
         self.printHelp()
         self.printBoard()
+        
+    # Function to print messages of variable parameters
+    def out(self, *messages):
+        for message in messages:
+            print message
+
+   
 
     def userInputReceived(self, string):
         # A database of commands, with command as key
@@ -96,6 +98,11 @@ class GameClientProtocol(JsonReceiver):
         except TypeError, e:
             self.out("Invalid command parameters: {0}".format(e))
 
+    # Destroy the connection
+    def exitGame(self):
+        self.out("Disconnecting...")
+        self.transport.loseConnection()
+        
     def printHelp(self):
         self.out(
             "",
@@ -106,12 +113,7 @@ class GameClientProtocol(JsonReceiver):
             "                        \"row\" and \"col\" should be values between 1 and 3",
             "  q, quit, exit       - Exit the program",
             "")
-
-    # Destroy the connection
-    def exitGame(self):
-        self.out("Disconnecting...")
-        self.transport.loseConnection()
-
+        
     # Sends commands using the Json format
     def sendCommand(self, command, **params):
         self.sendObject(command=command, params=params)
@@ -186,14 +188,7 @@ class GameClientProtocol(JsonReceiver):
     def serverOpponentDisconnected(self):
         self.out("Your opponent has disconnected, game is over")
         self.exitGame()
-
-    # Print whose turn it is
-    def printNextTurnMessage(self):
-        if self.game.current_player == self.side:
-            self.out("It's your turn now")
-        else:
-            self.out("It's your opponent's turn now")
-
+        
     # Print board in format
     def printBoard(self):
         board = [[cell or ' ' for cell in col] for col in self.game.board]
@@ -209,9 +204,15 @@ class GameClientProtocol(JsonReceiver):
                  "",
                  ]
         self.out("\n".join(lines).format(*board))
+        
+    # Print whose turn it is
+    def printNextTurnMessage(self):
+        if self.game.current_player == self.side:
+            self.out("It's your turn now")
+        else:
+            self.out("It's your opponent's turn now")
 
-
-# Inherits from ClientFactory from protocol module of Twisted API
+  # Inherits from ClientFactory from protocol module of Twisted API
 class GameClientFactory(protocol.ClientFactory):
     # Asserts the protocol to the local GameClientProtocol, which will be called in API module
     protocol = GameClientProtocol
